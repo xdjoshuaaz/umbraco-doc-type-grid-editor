@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web.Http;
 using System.Web.Http.ModelBinding;
 using Our.Umbraco.DocTypeGridEditor.Extensions;
@@ -113,25 +114,29 @@ namespace Our.Umbraco.DocTypeGridEditor.Web.Controllers
                 }
             }
 
+            var culture = page?.GetCulture() ?? Thread.CurrentThread.CurrentCulture;
+
             // NOTE: The previous previewer had a content node associated with the request,
             // meaning that an implementation may have used this to traverse the content-tree.
             // In order to maintain backward-compatibility, we must ensure the PublishedContentRequest context.
             if (UmbracoContext.PublishedContentRequest == null)
             {
-                UmbracoContext.PublishedContentRequest = new PublishedContentRequest(
+                var publishedContentRequest = UmbracoContext.PublishedContentRequest = new PublishedContentRequest(
                     Request.RequestUri,
                     UmbracoContext.RoutingContext,
                     UmbracoConfig.For.UmbracoSettings().WebRouting,
                     null)
                 {
-                    PublishedContent = page
+                    PublishedContent = page,
+                    Culture = culture
                 };
+
+                publishedContentRequest.Prepare();
             }
 
             // Set the culture for the preview
             if (page != null)
             {
-                var culture = page.GetCulture();
                 System.Threading.Thread.CurrentThread.CurrentCulture = culture;
                 System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
             }
